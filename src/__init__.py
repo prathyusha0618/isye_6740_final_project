@@ -9,6 +9,10 @@ from .ocsvm_baseline import (
     prepare_feature_matrix,
     train_ocsvm_baseline,
 )
+from .random_forest_baseline import (
+    RandomForestRunResult,
+    train_random_forest_on_dataframe,
+)
 
 __all__ = [
     "OCSVMBaseline",
@@ -19,4 +23,6 @@ __all__ = [
     "removal_branch",
     "repair_branch",
     "train_ocsvm_baseline",
+    "RandomForestRunResult",
+    "train_random_forest_on_dataframe",
 ]

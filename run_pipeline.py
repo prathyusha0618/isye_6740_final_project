@@ -22,6 +22,7 @@ from src import (
     prepare_feature_matrix,
     removal_branch,
     repair_branch,
+    train_random_forest_on_dataframe,
     train_ocsvm_baseline,
 )
 
@@ -81,6 +82,35 @@ def build_parser() -> argparse.ArgumentParser:
         default="median",
         help="Repair strategy for anomaly rows (default: median).",
     )
+    parser.add_argument(
+        "--train-rf",
+        action="store_true",
+        help="Train Random Forest on labeled/removed/repaired outputs.",
+    )
+    parser.add_argument(
+        "--rf-target-column",
+        type=str,
+        default="is_anomaly",
+        help="Target column for Random Forest training (default: is_anomaly).",
+    )
+    parser.add_argument(
+        "--rf-test-size",
+        type=float,
+        default=0.2,
+        help="Test split ratio for Random Forest evaluation (default: 0.2).",
+    )
+    parser.add_argument(
+        "--rf-random-state",
+        type=int,
+        default=42,
+        help="Random seed for Random Forest split/model (default: 42).",
+    )
+    parser.add_argument(
+        "--rf-n-estimators",
+        type=int,
+        default=300,
+        help="Number of trees for Random Forest (default: 300).",
+    )
     return parser
 
 
@@ -129,6 +159,10 @@ def main() -> None:
     # Validate input path early for clear user feedback.
     if not args.csv_path.exists():
         raise FileNotFoundError(f"Input CSV not found: {args.csv_path}")
+    if args.train_rf and not 0.0 < args.rf_test_size < 1.0:
+        raise ValueError("--rf-test-size must be between 0 and 1.")
+    if args.train_rf and args.rf_n_estimators <= 0:
+        raise ValueError("--rf-n-estimators must be a positive integer.")
 
     # Ensure output directory exists before writing any files.
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -159,6 +193,50 @@ def main() -> None:
     print(f"Labeled output : {labeled_path}")
     print(f"Removed output : {removed_path}")
     print(f"Repaired output: {repaired_path}")
+
+    if args.train_rf:
+        print("\nRandom Forest results:")
+        runs = [
+            train_random_forest_on_dataframe(
+                labeled_df,
+                dataset_name="labeled",
+                target_column=args.rf_target_column,
+                test_size=args.rf_test_size,
+                random_state=args.rf_random_state,
+                n_estimators=args.rf_n_estimators,
+            ),
+            train_random_forest_on_dataframe(
+                removed_df,
+                dataset_name="removed",
+                target_column=args.rf_target_column,
+                test_size=args.rf_test_size,
+                random_state=args.rf_random_state,
+                n_estimators=args.rf_n_estimators,
+            ),
+            train_random_forest_on_dataframe(
+                repaired_df,
+                dataset_name="repaired",
+                target_column=args.rf_target_column,
+                test_size=args.rf_test_size,
+                random_state=args.rf_random_state,
+                n_estimators=args.rf_n_estimators,
+            ),
+        ]
+
+        for run in runs:
+            if run.skipped:
+                print(f"- {run.dataset_name}: skipped ({run.reason})")
+                continue
+
+            roc_auc_str = f"{run.roc_auc:.4f}" if run.roc_auc is not None else "N/A"
+            print(
+                f"- {run.dataset_name}: "
+                f"accuracy={run.accuracy:.4f}, "
+                f"precision={run.precision:.4f}, "
+                f"recall={run.recall:.4f}, "
+                f"f1={run.f1:.4f}, "
+                f"roc_auc={roc_auc_str}"
+            )
 
 
 if __name__ == "__main__":

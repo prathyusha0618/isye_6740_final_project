@@ -15,6 +15,8 @@ The following modules are added under `/src`:
 - `branches.py`
   - `removal_branch`: remove anomalous rows
   - `repair_branch`: repair anomalous rows via median/mean replacement
+- `random_forest_baseline.py`
+  - Train/evaluate Random Forest on labeled/removed/repaired outputs
 
 ### Quick usage
 
@@ -59,3 +61,15 @@ Optional parameters:
 - `--kernel` (default: `rbf`)
 - `--gamma` (default: `scale`)
 - `--repair-strategy` (`median` or `mean`, default: `median`)
+
+To train Random Forest on all three outputs after pipeline generation:
+
+```bash
+python run_pipeline.py /path/to/AirQuality_preprocessed.csv --output-dir /path/to/out --train-rf
+```
+
+Random Forest options:
+- `--rf-target-column` (default: `is_anomaly`)
+- `--rf-test-size` (default: `0.2`)
+- `--rf-random-state` (default: `42`)
+- `--rf-n-estimators` (default: `300`)
