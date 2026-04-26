@@ -12,9 +12,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import pandas as pd
+
 from src import (
     generate_anomaly_labels,
     load_and_clean_air_quality_csv,
+    load_preprocessed_air_quality_csv,
     prepare_feature_matrix,
     removal_branch,
     repair_branch,
@@ -85,6 +88,16 @@ def _parse_gamma(gamma_raw: str) -> str | float:
         return gamma_raw
 
 
+def _load_pipeline_input(csv_path: Path, sep: str) -> pd.DataFrame:
+    """Load raw or notebook-preprocessed input CSVs."""
+    header = pd.read_csv(csv_path, sep=sep, nrows=0)
+    header_columns = set(header.columns)
+
+    if {"Date", "Time"}.issubset(header_columns):
+        return load_and_clean_air_quality_csv(str(csv_path), sep=sep)
+    return load_preprocessed_air_quality_csv(str(csv_path))
+
+
 def main() -> None:
     """Execute full pipeline and write labeled/removed/repaired outputs."""
     parser = build_parser()
@@ -97,8 +110,8 @@ def main() -> None:
     # Ensure output directory exists before writing any files.
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Pipeline: load/clean -> feature prep -> train -> label -> branch processing.
-    df = load_and_clean_air_quality_csv(str(args.csv_path), sep=args.sep)
+    # Pipeline: load -> feature prep -> train -> label -> branch processing.
+    df = _load_pipeline_input(args.csv_path, sep=args.sep)
     features = prepare_feature_matrix(df)
     baseline = train_ocsvm_baseline(
         features,

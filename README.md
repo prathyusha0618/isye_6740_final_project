@@ -7,6 +7,7 @@ The following modules are added under `/src`:
 
 - `ocsvm_baseline.py`
   - Load and clean `AirQuality.csv`
+  - Load notebook-preprocessed CSV (`AirQuality_preprocessed.csv`)
   - Prepare numeric feature matrix
   - Train OC-SVM baseline
 - `anomaly_labeling.py`
@@ -20,6 +21,7 @@ The following modules are added under `/src`:
 ```python
 from src import (
     load_and_clean_air_quality_csv,
+    load_preprocessed_air_quality_csv,
     prepare_feature_matrix,
     train_ocsvm_baseline,
     generate_anomaly_labels,
@@ -28,6 +30,7 @@ from src import (
 )
 
 df = load_and_clean_air_quality_csv("AirQuality.csv")
+# or: df = load_preprocessed_air_quality_csv("AirQuality_preprocessed.csv")
 X = prepare_feature_matrix(df)
 baseline = train_ocsvm_baseline(X)
 labeled = generate_anomaly_labels(baseline, X)
@@ -38,13 +41,16 @@ repaired_df = repair_branch(labeled, strategy="median")
 
 ### Run full pipeline from CLI
 
-Use `run_pipeline.py` to load `AirQuality.csv` and generate three files:
+`final project.ipynb` now writes `AirQuality_preprocessed.csv` after preprocessing.
+
+Use `run_pipeline.py` to load either raw `AirQuality.csv` or notebook-preprocessed
+`AirQuality_preprocessed.csv`, then generate three files:
 - labeled output
 - anomaly-removed output
 - anomaly-repaired output
 
 ```bash
-python run_pipeline.py /path/to/AirQuality.csv --output-dir /path/to/out
+python run_pipeline.py /path/to/AirQuality_preprocessed.csv --output-dir /path/to/out
 ```
 
 Optional parameters:
