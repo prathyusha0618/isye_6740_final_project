@@ -88,14 +88,31 @@ def _parse_gamma(gamma_raw: str) -> str | float:
         return gamma_raw
 
 
+def _detect_separator(csv_path: Path, fallback_sep: str) -> str:
+    """Infer CSV separator from header; fallback to CLI-provided separator."""
+    with csv_path.open("r", encoding="utf-8", errors="ignore") as f:
+        first_line = f.readline()
+    if not first_line:
+        return fallback_sep
+    comma_count = first_line.count(",")
+    semicolon_count = first_line.count(";")
+
+    if semicolon_count > comma_count:
+        return ";"
+    if comma_count > semicolon_count:
+        return ","
+    return fallback_sep
+
+
 def _load_pipeline_input(csv_path: Path, sep: str) -> pd.DataFrame:
     """Load raw or notebook-preprocessed input CSVs."""
-    header = pd.read_csv(csv_path, sep=sep, nrows=0)
+    inferred_sep = _detect_separator(csv_path, fallback_sep=sep)
+    header = pd.read_csv(csv_path, sep=inferred_sep, nrows=0)
     header_columns = set(header.columns)
 
     if {"Date", "Time"}.issubset(header_columns):
-        return load_and_clean_air_quality_csv(str(csv_path), sep=sep)
-    return load_preprocessed_air_quality_csv(str(csv_path))
+        return load_and_clean_air_quality_csv(str(csv_path), sep=inferred_sep)
+    return load_preprocessed_air_quality_csv(str(csv_path), sep=inferred_sep)
 
 
 def main() -> None:
