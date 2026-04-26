@@ -25,6 +25,8 @@ from src import (
     train_ocsvm_baseline,
 )
 
+COMMON_CSV_DELIMITERS = ",;\t|"
+
 
 def build_parser() -> argparse.ArgumentParser:
     """Create CLI argument parser."""
@@ -97,7 +99,7 @@ def _detect_separator(csv_path: Path, fallback_sep: str) -> str:
         return fallback_sep
 
     try:
-        dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
+        dialect = csv.Sniffer().sniff(sample, delimiters=COMMON_CSV_DELIMITERS)
         return dialect.delimiter
     except csv.Error:
         return fallback_sep
