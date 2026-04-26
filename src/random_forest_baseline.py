@@ -119,8 +119,10 @@ def train_random_forest_on_dataframe(
 
     roc_auc = None
     if hasattr(model, "predict_proba"):
-        y_proba = model.predict_proba(x_test)[:, 1]
-        roc_auc = roc_auc_score(y_test, y_proba)
+        class_to_index = {int(cls): idx for idx, cls in enumerate(model.classes_)}
+        if 1 in class_to_index:
+            y_proba = model.predict_proba(x_test)[:, class_to_index[1]]
+            roc_auc = roc_auc_score(y_test, y_proba)
 
     return RandomForestRunResult(
         dataset_name=dataset_name,
