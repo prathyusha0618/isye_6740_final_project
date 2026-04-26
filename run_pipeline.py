@@ -10,6 +10,7 @@ labels, and writes three outputs:
 from __future__ import annotations
 
 import argparse
+import csv
 from pathlib import Path
 
 import pandas as pd
@@ -91,21 +92,23 @@ def _parse_gamma(gamma_raw: str) -> str | float:
 def _detect_separator(csv_path: Path, fallback_sep: str) -> str:
     """Infer CSV separator from header; fallback to CLI-provided separator."""
     with csv_path.open("r", encoding="utf-8", errors="ignore") as f:
-        first_line = f.readline()
-    if not first_line:
+        sample = f.read(4096)
+    if not sample.strip():
         return fallback_sep
-    comma_count = first_line.count(",")
-    semicolon_count = first_line.count(";")
 
-    if semicolon_count > comma_count:
-        return ";"
-    if comma_count > semicolon_count:
-        return ","
-    return fallback_sep
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
+        return dialect.delimiter
+    except csv.Error:
+        return fallback_sep
 
 
 def _load_pipeline_input(csv_path: Path, sep: str) -> pd.DataFrame:
-    """Load raw or notebook-preprocessed input CSVs."""
+    """Load raw or notebook-preprocessed input CSVs.
+
+    Heuristic: Kaggle raw files contain both `Date` and `Time`; notebook outputs
+    store cleaned rows (typically with `Datetime`) and are treated as preprocessed.
+    """
     inferred_sep = _detect_separator(csv_path, fallback_sep=sep)
     header = pd.read_csv(csv_path, sep=inferred_sep, nrows=0)
     header_columns = set(header.columns)

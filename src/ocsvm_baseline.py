@@ -87,7 +87,6 @@ def load_preprocessed_air_quality_csv(
     if datetime_column in df.columns:
         parsed_dt = pd.to_datetime(df[datetime_column], errors="coerce")
         if parsed_dt.notna().any():
-            df = df.copy()
             df[datetime_column] = parsed_dt
             df = df.set_index(datetime_column)
 
