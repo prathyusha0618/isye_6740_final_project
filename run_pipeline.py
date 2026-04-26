@@ -10,16 +10,23 @@ labels, and writes three outputs:
 from __future__ import annotations
 
 import argparse
+import csv
 from pathlib import Path
+
+import pandas as pd
 
 from src import (
     generate_anomaly_labels,
     load_and_clean_air_quality_csv,
+    load_preprocessed_air_quality_csv,
     prepare_feature_matrix,
     removal_branch,
     repair_branch,
     train_ocsvm_baseline,
 )
+
+# Candidate delimiters used when inferring CSV format from input samples.
+COMMON_CSV_DELIMITERS = ",;\t|"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -85,6 +92,35 @@ def _parse_gamma(gamma_raw: str) -> str | float:
         return gamma_raw
 
 
+def _detect_separator(csv_path: Path, fallback_sep: str) -> str:
+    """Infer CSV separator from header; fallback to CLI-provided separator."""
+    with csv_path.open("r", encoding="utf-8", errors="replace") as f:
+        sample = f.read(4096)
+    if not sample.strip():
+        return fallback_sep
+
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=COMMON_CSV_DELIMITERS)
+        return dialect.delimiter
+    except csv.Error:
+        return fallback_sep
+
+
+def _load_pipeline_input(csv_path: Path, sep: str) -> pd.DataFrame:
+    """Load raw or notebook-preprocessed input CSVs.
+
+    Heuristic: Kaggle raw files contain both `Date` and `Time`; notebook outputs
+    store cleaned rows (typically with `Datetime`) and are treated as preprocessed.
+    """
+    inferred_sep = _detect_separator(csv_path, fallback_sep=sep)
+    header = pd.read_csv(csv_path, sep=inferred_sep, nrows=0)
+    header_columns = set(header.columns)
+
+    if {"Date", "Time"}.issubset(header_columns):
+        return load_and_clean_air_quality_csv(str(csv_path), sep=inferred_sep)
+    return load_preprocessed_air_quality_csv(str(csv_path), sep=inferred_sep)
+
+
 def main() -> None:
     """Execute full pipeline and write labeled/removed/repaired outputs."""
     parser = build_parser()
@@ -97,8 +133,8 @@ def main() -> None:
     # Ensure output directory exists before writing any files.
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Pipeline: load/clean -> feature prep -> train -> label -> branch processing.
-    df = load_and_clean_air_quality_csv(str(args.csv_path), sep=args.sep)
+    # Pipeline: load -> feature prep -> train -> label -> branch processing.
+    df = _load_pipeline_input(args.csv_path, sep=args.sep)
     features = prepare_feature_matrix(df)
     baseline = train_ocsvm_baseline(
         features,

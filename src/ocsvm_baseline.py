@@ -72,6 +72,27 @@ def load_and_clean_air_quality_csv(csv_path: str, sep: str = ";") -> pd.DataFram
     return df
 
 
+def load_preprocessed_air_quality_csv(
+    csv_path: str,
+    sep: str = ",",
+    datetime_column: str = "Datetime",
+) -> pd.DataFrame:
+    """Load a notebook-preprocessed CSV for downstream OC-SVM stages.
+
+    If `datetime_column` exists and at least one value parses as datetime, it is
+    used as index; otherwise, data is returned without datetime index conversion.
+    """
+    df = pd.read_csv(csv_path, sep=sep)
+
+    if datetime_column in df.columns:
+        parsed_dt = pd.to_datetime(df[datetime_column], errors="coerce")
+        if parsed_dt.notna().any():
+            df[datetime_column] = parsed_dt
+            df = df.set_index(datetime_column)
+
+    return df
+
+
 def prepare_feature_matrix(
     df: pd.DataFrame,
     feature_columns: Optional[Iterable[str]] = None,
