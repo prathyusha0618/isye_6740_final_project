@@ -35,3 +35,21 @@ labeled = generate_anomaly_labels(baseline, X)
 removed_df = removal_branch(labeled)
 repaired_df = repair_branch(labeled, strategy="median")
 ```
+
+### Run full pipeline from CLI
+
+Use `run_pipeline.py` to load `AirQuality.csv` and generate three files:
+- labeled output
+- anomaly-removed output
+- anomaly-repaired output
+
+```bash
+python run_pipeline.py /path/to/AirQuality.csv --output-dir /path/to/out
+```
+
+Optional parameters:
+- `--output-prefix` (default: `air_quality`)
+- `--nu` (default: `0.05`)
+- `--kernel` (default: `rbf`)
+- `--gamma` (default: `scale`)
+- `--repair-strategy` (`median` or `mean`, default: `median`)
