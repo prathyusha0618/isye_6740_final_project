@@ -25,6 +25,7 @@ from src import (
     train_ocsvm_baseline,
 )
 
+# Candidate delimiters used when inferring CSV format from input samples.
 COMMON_CSV_DELIMITERS = ",;\t|"
 
 
@@ -93,7 +94,7 @@ def _parse_gamma(gamma_raw: str) -> str | float:
 
 def _detect_separator(csv_path: Path, fallback_sep: str) -> str:
     """Infer CSV separator from header; fallback to CLI-provided separator."""
-    with csv_path.open("r", encoding="utf-8", errors="ignore") as f:
+    with csv_path.open("r", encoding="utf-8", errors="replace") as f:
         sample = f.read(4096)
     if not sample.strip():
         return fallback_sep
